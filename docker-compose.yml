@@ -1,0 +1,104 @@
+services:
+
+  # ── 1. Virtual Modbus meters ─────────────────────────────────────────────────
+  meter-simulator:
+    build: ./services/meter-simulator
+    container_name: meter-simulator
+    environment:
+      - NUM_METERS=4
+    networks:
+      - plant-net
+    restart: unless-stopped
+
+  # ── 2. Modbus collector → MQTT ───────────────────────────────────────────────
+  modbus-collector:
+    build: ./services/modbus-collector
+    container_name: modbus-collector
+    environment:
+      - METER_HOST=meter-simulator
+      - METER_PORT=502
+      - MQTT_HOST=mqtt-broker
+      - MQTT_PORT=1883
+      - POLL_INTERVAL=10
+    depends_on:
+      - meter-simulator
+      - mqtt-broker
+    networks:
+      - plant-net
+    restart: unless-stopped
+
+  # ── 3. MQTT broker ───────────────────────────────────────────────────────────
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    volumes:
+      - ./services/mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    ports:
+      - "1883:1883"
+    networks:
+      - plant-net
+    restart: unless-stopped
+
+  # ── 4. Ingestion service (MQTT → TimescaleDB) ─────────────────────────────
+  ingestion-service:
+    build: ./services/ingestion-service
+    container_name: ingestion-service
+    environment:
+      - MQTT_HOST=mqtt-broker
+      - MQTT_PORT=1883
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_NAME=factory_energy
+      - DB_USER=energy_user
+      - DB_PASSWORD=energy_pass
+    depends_on:
+      - mqtt-broker
+      - timescaledb
+    networks:
+      - plant-net
+    restart: unless-stopped
+
+  # ── 5. TimescaleDB (time-series storage) ─────────────────────────────────────
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: timescaledb
+    environment:
+      - POSTGRES_DB=factory_energy
+      - POSTGRES_USER=energy_user
+      - POSTGRES_PASSWORD=energy_pass
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+      - ./services/timescaledb/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - plant-net
+    restart: unless-stopped
+
+  # ── 6. Grafana dashboards ─────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./services/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - timescaledb
+    networks:
+      - plant-net
+    restart: unless-stopped
+
+volumes:
+  timescale-data:
+  grafana-data:
+
+networks:
+  plant-net:
+    driver: bridge

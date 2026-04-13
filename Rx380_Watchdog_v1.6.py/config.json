@@ -5,17 +5,16 @@
       "baudrate": 19200
     },
     "database": {
-      "server": "192.168.0.226",
-      "database": "Power_Usage_Alumac",
-      "user": "sa",
-      "password": "password"
+      "server": "YOUR_DB_SERVER_IP",
+      "database": "YOUR_DB_NAME",
+      "user": "YOUR_DB_USER",
+      "password": "YOUR_DB_PASSWORD"
     },
     "csv": {
-      "log_folder": "/home/pi/logs"
+      "log_folder": "./logs"
     },
     "logging": {
       "log_file": "rx380_logger.log",
       "level": "INFO"
     }
   }
-  

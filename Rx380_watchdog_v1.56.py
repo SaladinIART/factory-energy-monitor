@@ -2,6 +2,7 @@ import asyncio
 import minimalmodbus
 import csv
 import logging
+import os
 from datetime import datetime, timedelta
 import pymssql
 import json
@@ -107,10 +108,10 @@ class DataManager:
     """Class to handle data storage in SQL and CSV."""
     def __init__(self):
         self.db_config = {
-            'server': '192.168.0.226',
-            'database': 'Power_Usage_Alumac',
-            'user': 'sa',
-            'password': 'password'
+            'server': os.getenv('DB_SERVER', 'YOUR_DB_SERVER_IP'),
+            'database': os.getenv('DB_NAME', 'YOUR_DB_NAME'),
+            'user': os.getenv('DB_USER', 'YOUR_DB_USER'),
+            'password': os.getenv('DB_PASSWORD', 'YOUR_DB_PASSWORD')
         }
 
     async def save_to_sql(self, data_buffer):
@@ -160,7 +161,7 @@ def get_filename(extension):
 async def save_to_csv(data, folder_path=None):
     """Save a single data point to a CSV file."""
     if folder_path is None:
-        folder_path = Path.home() / "Desktop" / "PUA_Office" / "PUA" / "rx380_daily_logs"
+        folder_path = Path(os.getenv('CSV_LOG_FOLDER', './logs'))
     folder_path = Path(folder_path)
     folder_path.mkdir(parents=True, exist_ok=True)
     

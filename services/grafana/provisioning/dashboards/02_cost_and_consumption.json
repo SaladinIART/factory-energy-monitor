@@ -1,0 +1,70 @@
+{
+  "title": "Cost & Consumption",
+  "uid": "cost-consumption",
+  "tags": ["factory", "cost", "compliance"],
+  "refresh": "1m",
+  "time": { "from": "now-30d", "to": "now" },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Cost This Month (RM)",
+      "description": "TNB rate: 45.40 sen/kWh (effective July 2025)",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "fieldConfig": {
+        "defaults": { "unit": "currencyMYR", "decimals": 0 }
+      },
+      "targets": [{
+        "rawSql": "SELECT NOW() AS time, ROUND(SUM(energy_kwh) * 0.454, 2) AS value FROM meter_readings WHERE date_trunc('month', time) = date_trunc('month', NOW())",
+        "format": "time_series"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "kWh This Month",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "fieldConfig": {
+        "defaults": { "unit": "kwatth", "decimals": 0 }
+      },
+      "targets": [{
+        "rawSql": "SELECT NOW() AS time, ROUND(SUM(energy_kwh), 0) AS value FROM meter_readings WHERE date_trunc('month', time) = date_trunc('month', NOW())",
+        "format": "time_series"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Estimated CO₂ This Month (kg)",
+      "description": "Malaysia grid factor: 0.585 kg CO₂/kWh (Scope 2)",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "decimals": 0 }
+      },
+      "targets": [{
+        "rawSql": "SELECT NOW() AS time, ROUND(SUM(energy_kwh) * 0.585, 0) AS value FROM meter_readings WHERE date_trunc('month', time) = date_trunc('month', NOW())",
+        "format": "time_series"
+      }]
+    },
+    {
+      "type": "table",
+      "title": "Monthly Cost Breakdown by Zone",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 8 },
+      "targets": [{
+        "rawSql": "SELECT zone_name AS \"Zone\", ROUND(SUM(energy_kwh), 0) AS \"kWh\", ROUND(SUM(energy_kwh) * 0.454, 2) AS \"Cost (RM)\", ROUND(SUM(energy_kwh) * 0.585, 0) AS \"CO₂ (kg)\", ROUND(100.0 * SUM(energy_kwh) / SUM(SUM(energy_kwh)) OVER (), 1) AS \"% of Total\" FROM meter_readings WHERE date_trunc('month', time) = date_trunc('month', NOW()) GROUP BY zone_name ORDER BY 3 DESC",
+        "format": "table"
+      }]
+    },
+    {
+      "type": "barchart",
+      "title": "Monthly Energy Cost Trend (RM)",
+      "description": "3 months of seeded historical data + current month",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "currencyMYR" }
+      },
+      "targets": [{
+        "rawSql": "SELECT to_char(date_trunc('month', time), 'Mon YYYY') AS month, ROUND(SUM(energy_kwh) * 0.454, 0) AS cost_rm FROM meter_readings GROUP BY 1 ORDER BY MIN(time)",
+        "format": "table"
+      }]
+    }
+  ],
+  "schemaVersion": 36
+}

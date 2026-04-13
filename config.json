@@ -4,27 +4,26 @@
       "slave_address": 1,
       "baudrate": 19200,
       "bytesize": 8,
-      "parity": "E",  
+      "parity": "E",
       "stopbits": 1,
       "timeout": 1,
       "mode": "RTU"
     },
     "database": {
-      "server": "192.168.0.226",
-      "database": "Power_Usage_Alumac",
-      "user": "sa",
-      "password": "password",
-      "table_name": "dbo.Office_Readings"  
+      "server": "YOUR_DB_SERVER_IP",
+      "database": "YOUR_DB_NAME",
+      "user": "YOUR_DB_USER",
+      "password": "YOUR_DB_PASSWORD",
+      "table_name": "dbo.Meter_Readings"
     },
     "logging": {
-      "file": "rx380_logger_v1.7.log",
+      "file": "rx380_logger.log",
       "level": "INFO"
     },
     "file_paths": {
-      "csv_folder": "~/Desktop/P7_Oven/PUA/rx380_daily_logs"
+      "csv_folder": "./logs"
     },
     "data_save_interval": {
       "minutes": 10
     }
   }
-  

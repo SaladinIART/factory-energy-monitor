@@ -2,6 +2,7 @@ import asyncio
 import minimalmodbus
 import csv
 import logging
+import os
 from datetime import datetime
 from pyexcel_ods3 import save_data, get_data
 from collections import OrderedDict, deque
@@ -107,13 +108,13 @@ class RX380:
 class DataManager:
     def __init__(self, buffer_size=720):  # 720 * 5 minutes = 60 hours of data
         self.buffer = deque(maxlen=buffer_size)
-        self.folder_path = Path.home() / "Desktop" / "PUA_Office" / "PUA" / "rx380_daily_logs"
+        self.folder_path = Path(os.getenv('CSV_LOG_FOLDER', './logs'))
         self.folder_path.mkdir(parents=True, exist_ok=True)
         self.db_config = {
-            'server': '192.168.0.226',
-            'database': 'Power_Usage_Alumac',
-            'user': 'sa',
-            'password': 'passwordpi'
+            'server': os.getenv('DB_SERVER', 'YOUR_DB_SERVER_IP'),
+            'database': os.getenv('DB_NAME', 'YOUR_DB_NAME'),
+            'user': os.getenv('DB_USER', 'YOUR_DB_USER'),
+            'password': os.getenv('DB_PASSWORD', 'YOUR_DB_PASSWORD')
         }
         
     def add_data(self, data):

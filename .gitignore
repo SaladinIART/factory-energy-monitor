@@ -1,3 +1,6 @@
+# Environment / secrets
+.env
+
 # Test files
 Rx380_Data_csv.py
 Rx380_watchdog.py

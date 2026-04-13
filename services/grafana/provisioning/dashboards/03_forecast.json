@@ -1,0 +1,70 @@
+{
+  "title": "Next-Month Energy Forecast",
+  "uid": "energy-forecast",
+  "tags": ["factory", "forecast", "planning"],
+  "refresh": "5m",
+  "time": { "from": "now-90d", "to": "now" },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Projected kWh — Next Month",
+      "description": "Based on 3-month historical average per zone",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 4 },
+      "fieldConfig": {
+        "defaults": { "unit": "kwatth", "decimals": 0 }
+      },
+      "targets": [{
+        "rawSql": "SELECT NOW() AS time, ROUND(AVG(monthly_kwh), 0) AS value FROM (SELECT date_trunc('month', time) AS month, SUM(energy_kwh) AS monthly_kwh FROM meter_readings WHERE time > NOW() - INTERVAL '90 days' GROUP BY 1) sub",
+        "format": "time_series"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Projected Cost — Next Month (RM)",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 4 },
+      "fieldConfig": {
+        "defaults": { "unit": "currencyMYR", "decimals": 0 }
+      },
+      "targets": [{
+        "rawSql": "SELECT NOW() AS time, ROUND(AVG(monthly_kwh) * 0.454, 0) AS value FROM (SELECT date_trunc('month', time) AS month, SUM(energy_kwh) AS monthly_kwh FROM meter_readings WHERE time > NOW() - INTERVAL '90 days' GROUP BY 1) sub",
+        "format": "time_series"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Projected CO₂ — Next Month (kg)",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 4 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "decimals": 0 }
+      },
+      "targets": [{
+        "rawSql": "SELECT NOW() AS time, ROUND(AVG(monthly_kwh) * 0.585, 0) AS value FROM (SELECT date_trunc('month', time) AS month, SUM(energy_kwh) AS monthly_kwh FROM meter_readings WHERE time > NOW() - INTERVAL '90 days' GROUP BY 1) sub",
+        "format": "time_series"
+      }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Historical Monthly kWh vs Projected",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 10 },
+      "fieldConfig": {
+        "defaults": { "unit": "kwatth" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('month', time) AS time, SUM(energy_kwh) AS \"Actual kWh\" FROM meter_readings WHERE time <= NOW() GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Zone-Level Forecast (based on 3-month average)",
+      "gridPos": { "x": 0, "y": 14, "w": 24, "h": 7 },
+      "targets": [{
+        "rawSql": "SELECT zone_name AS \"Zone\", ROUND(AVG(monthly_kwh), 0) AS \"Projected kWh\", ROUND(AVG(monthly_kwh) * 0.454, 2) AS \"Projected Cost (RM)\", ROUND(AVG(monthly_kwh) * 0.585, 0) AS \"Projected CO₂ (kg)\" FROM (SELECT zone_name, date_trunc('month', time) AS month, SUM(energy_kwh) AS monthly_kwh FROM meter_readings WHERE time > NOW() - INTERVAL '90 days' GROUP BY 1, 2) sub GROUP BY zone_name ORDER BY 3 DESC",
+        "format": "table"
+      }]
+    }
+  ],
+  "schemaVersion": 36
+}

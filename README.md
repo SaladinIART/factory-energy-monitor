@@ -1,98 +1,172 @@
-1. Project Overview
+# Factory Energy Monitor
 
-Introduction:
-This project focuses on monitoring the electrical consumption (in kilowatt-hours) at a workplace using the RX380 power meter, with the goal of identifying which locations consume the most electricity at specific times. The solution is cost-effective, targeting small and medium enterprises (SMEs) or hobbyists with limited budgets, particularly in Southeast Asia. By collecting and analyzing this data, companies can better manage their energy consumption and make informed decisions on energy efficiency.
+> A real-world energy monitoring system built for a Malaysian manufacturing SME —
+> deployed across 25 machine locations and adopted as the department standard for
+> monthly production-cost reporting.
 
-The proof of concept (PoC) phase is already complete, demonstrating successful communication between the RX380 and a Raspberry Pi 5 using Python code. Data is being transferred from the RX380 to the Raspberry Pi and then stored in an MSSQL server, with further plans to integrate a dashboard using Node-RED for real-time data visualization.
+---
 
-This project is ongoing, with future plans to explore different controllers such as the PiControl CM4 Industrial Controller, which may be better suited for environments where Raspberry Pi 5 is not ideal.
+## Why This Was Built
 
-Audience:
-The project is intended for:
+A mid-sized aluminium manufacturer in Malaysia had a problem every production manager recognises: electricity bills of **RM30,000–65,000 per month** with no breakdown by machine or zone. They knew costs were rising, but couldn't say where the money was going.
 
-Engineers and technicians in small to medium enterprises (SMEs) seeking a low-cost solution for power monitoring.
-Hobbyists or individuals involved in industrial automation with limited resources.
-Researchers and developers looking to collect and analyze energy consumption data for small-scale industrial or commercial setups.
+The factory manager tasked a 2-person digitization team with two things:
+1. Build a working proof-of-concept for energy monitoring
+2. Use it to inform which contractor to hire for the full rollout
 
-2. Data Output
-This project monitors several key electrical parameters, which are captured every 10 seconds, displayed on the terminal every 2 minutes, and logged into a CSV file every 5 minutes. Below is a list of the data points being monitored:
+This system was that proof-of-concept. It worked. It was used by management for monthly cost reporting. It became the department's standard framework for machine data collection — and later the foundation for a broader IIoT telemetry platform.
 
-Line Voltages (V):
-Voltage between lines 1 and 2 (L12)
-Voltage between lines 2 and 3 (L23)
-Voltage between lines 3 and 1 (L31)
-Voltage for each individual phase (L1, L2, L3)
-Currents (A):
-Current in line 1 (L1)
-Current in line 2 (L2)
-Current in line 3 (L3)
-Power:
-Total real power (in watts)
-Power factor (dimensionless, calculated)
-Frequency (Hz):
-System frequency
-CSV Data Storage:
-Data is logged into a CSV file with the following fields:
+**The timing matters too.** Malaysia's [Energy Efficiency and Conservation Act (EECA 2024)](https://www.st.gov.my/en/web/guest/content/eeca) took effect on 1 January 2025. Factories consuming more than 21,600 GJ per year must now appoint a Registered Energy Manager, conduct annual energy audits, and face fines of RM20,000–100,000 for non-compliance. A carbon tax of RM15/tCO₂e applies from 2026. A system like this isn't just useful — it's becoming a legal requirement.
 
-timestamp: The time when the data was read.
-voltage_l12, voltage_l23, voltage_l31: Line voltages.
-voltage_l1, voltage_l2, voltage_l3: Voltages on each phase.
-current_l1, current_l2, current_l3: Currents on each phase.
-total_real_power: Total real power in watts.
-total_power_factor: The power factor of the system.
-frequency: System frequency in hertz.
+---
 
-2.1. Error Handling
-The project has robust error handling mechanisms to ensure the system remains stable during operation. Each Modbus register read is wrapped in a try-except block. If any exception occurs (e.g., communication failure or timeout), the system logs the error into a log file (rx380_logger.log) without crashing the entire program.
+## What It Does
 
-Example of Error Handling:
-python
-Copy code
-except Exception as e:
-    logging.error(f"Error reading scaled value from register {register_address}: {e}")
-Troubleshooting:
-If the system fails to read data from the RX380, error messages will be logged in the rx380_logger.log file.
-Look for messages like "Error reading scaled value from register X" to identify specific issues with the registers.
-Ensure that the serial connection is stable, the correct device configurations are in place, and the Raspberry Pi has the appropriate permissions to access the USB port.
+- Reads electrical data (voltage, current, power, energy, power factor) from **RX380 Modbus power meters** at each machine zone
+- Stores readings to a time-series database every 10 minutes
+- Provides a live dashboard showing **real-time power consumption per zone**
+- Calculates **RM cost and CO₂ emissions** based on current TNB tariff rates
+- Forecasts **next-month energy cost** from 3 months of historical data
 
-Device physical connection:
+---
 
-RX380 Power Meter:
-Connected to the RS485 converter using a 3-core wire (RS485 communication).
-RS485 to USB Converter:
-Converts the RS485 signal to USB and connects to the Raspberry Pi via the USB port.
-Raspberry Pi 5:
-Receives the data via USB and processes it through Python scripts for data logging.
+## Production Deployment (Sanitised)
 
-3. Hardware and Software Setup
-Hardware:
-Acer Predator Helios Neo 16 (Windows 11)
-This laptop is the main development environment, where all the programming, debugging, and project management take place. It has been configured with the necessary tools for Python development, SSH, and Docker for containerization.
-Raspberry Pi 5 (Location: Office)
-Operating System: Bookworm OS
-The Raspberry Pi 5 acts as the controller, interfacing with the RX380 via Modbus RTU (through a USB to RS485/422 isolated converter). It is accessed remotely from the development laptop through SSH, allowing for seamless deployment and real-time testing.
-Software and Tools:
-Microsoft Visual Studio Code (VS Code)
+This system ran on industrial hardware at a manufacturing plant floor:
 
-SSH Integration: Remotely control and program the Raspberry Pi from VS Code via SSH. This enables easy debugging and execution of Python scripts on the Pi.
-Git & GitHub Integration: Version control is implemented using Git, GitHub Desktop, and the Git extension in VS Code to track changes, collaborate with colleagues, and ensure stable project management.
-Docker Desktop
+| Component | Details |
+|-----------|---------|
+| Controller | IRIV Cytron industrial PC (ruggedised, 24V DC) |
+| Power meters | RX380 Modbus RTU (25 locations across plant floor) |
+| Protocol | Modbus RTU over RS-485, bridged to TCP |
+| Message broker | RabbitMQ / MQTT |
+| Database | Microsoft SQL Server |
+| Dashboard | Internal web interface |
 
-The current setup is being prepared for deployment in a containerized environment using Docker. This ensures all dependencies and configurations are consistent across different environments, which will be fully implemented in version 1.6.
-LibreOffice
+All site-specific configuration (IP addresses, credentials, database names, file paths) has been removed from this repository. See `.env.example` for the configuration structure.
 
-Initially used to save data in both .csv and .ods formats, though .csv has been chosen as the final format for its simplicity and ease of retrieval. LibreOffice may still be used for additional data manipulation if required.
-Codesys IDE
+---
 
-Future versions will integrate Codesys to convert Python code logic into Function Block Diagrams (FBD) and Structured Text (ST) to meet specific industrial requirements.
-Challenges and Solutions:
-File Saving Issues (v1.4)
+## This Repository — Open-Source Version
 
-Early versions encountered system freezes when saving data in .csv and .ods formats simultaneously. This was resolved by sticking to the .csv format only, ensuring smooth performance and ease of access for data logging.
-Library Versioning Problems
+Because the production stack depends on licensed software and site-specific hardware, this repository ships a **fully open-source Docker equivalent** that anyone can run locally. It simulates 4 production zones with realistic Malaysian factory load profiles.
 
-Testing on different systems led to issues with library incompatibilities (e.g., due to varying Python versions and dependencies). The solution involves Docker containerization in version 1.6, which will package all necessary dependencies into a single environment.
-Error Logging
+```
+docker compose up
+```
 
-The system logs errors into rx380_logger.log, providing details for troubleshooting any failures during communication with the RX380 or other runtime issues.
+Then open **http://localhost:3000** — Grafana loads with 3 pre-built dashboards and 3 months of seeded historical data.
 
+### Simulated Factory Layout
+
+| Meter | Zone | Machines | Avg Load | ~kWh/month |
+|-------|------|----------|----------|------------|
+| METER-01 | Press Line A | 8 machines | 20 kW | ~3,520 kWh |
+| METER-02 | Press Line B | 7 machines | 14 kW | ~2,464 kWh |
+| METER-03 | CNC & Machining | 6 machines | 21 kW | ~3,696 kWh |
+| METER-04 | Assembly & HVAC | 4 machines + HVAC | 16 kW | ~2,816 kWh |
+| **Total** | | **25 machines** | | **~75,000 kWh/month** |
+
+At TNB's current industrial rate (45.40 sen/kWh), that's approximately **RM34,000–42,000/month**.
+
+Load profiles follow a real factory pattern: ramp-up at 7am, lunch dip at noon, wind-down at 5pm.
+
+---
+
+## Architecture
+
+```
+RX380 Power Meters (Modbus RTU/TCP)
+         │
+         ▼
+  [meter-simulator]        ← 4 virtual meters, Modbus TCP (ports 5020–5023)
+         │
+         ▼
+  [modbus-collector]       ← polls all meters every 10s, publishes JSON to MQTT
+         │
+         ▼
+   [mqtt-broker]           ← eclipse-mosquitto
+         │
+         ▼
+  [ingestion-service]      ← subscribes MQTT → writes to TimescaleDB
+         │                    (also seeds 3 months of historical data on startup)
+         ▼
+   [timescaledb]           ← time-series storage (PostgreSQL + TimescaleDB)
+         │
+         ▼
+     [grafana]             ← 3 pre-provisioned dashboards
+```
+
+**Production stack used:** Modbus RTU → RabbitMQ → MSSQL → internal dashboard.
+**This repo uses:** Modbus TCP → Mosquitto MQTT → TimescaleDB → Grafana. Fully open-source, no licences required.
+
+---
+
+## Dashboards
+
+| Dashboard | What It Shows |
+|-----------|--------------|
+| **Live Plant Overview** | Real-time kW per zone, power factor gauges (alert <0.85), total plant load |
+| **Cost & Consumption** | RM cost and kWh by zone (today/month), CO₂ estimate, 3-month cost trend |
+| **Next-Month Forecast** | Projected kWh, RM cost, CO₂ per zone — based on 3-month rolling average |
+
+---
+
+## Malaysian Regulatory Context
+
+Relevant for engineers working in Malaysian manufacturing:
+
+- **EECA 2024** (enforced 1 Jan 2025): factories consuming >21,600 GJ/year must appoint a Registered Energy Manager and conduct annual energy audits. Penalties: RM20,000–100,000.
+- **TNB MD tariff**: 45.40 sen/kWh base rate (13.6% increase effective July 2025). Demand charges apply separately.
+- **Carbon tax**: RM15/tCO₂e from 2026 — Scope 1 & 2 emissions tracking required.
+- **Malaysia grid carbon factor**: 0.585 kg CO₂/kWh (used in CO₂ estimates).
+
+---
+
+## How to Run
+
+**Requirements:** Docker Desktop (Windows/Mac/Linux)
+
+```bash
+git clone https://github.com/SaladinIART/factory-energy-monitor
+cd factory-energy-monitor
+docker compose up
+```
+
+Open http://localhost:3000 → login: `admin / admin` → navigate to *Factory Energy Monitor* folder.
+
+All 6 services start automatically. Historical data seeds on first run (takes ~30 seconds).
+
+---
+
+## Lessons for Engineers in Similar Situations
+
+This was built by a 2-person team, alongside other production projects, with no prior formal IIoT training. A few things that proved true:
+
+- **Start with one meter and prove the data pipeline.** Scaling to 25 was straightforward once the first one worked.
+- **Factory managers respond to cost numbers, not architecture diagrams.** "Zone 3 cost RM8,400 last month" gets attention. "We have a Modbus pipeline" does not.
+- **A working system with messy code beats a perfect system never delivered.** The v1.56 code in this repo isn't clean. It ran in production for months.
+- **Document as you go.** Even rough notes in the code help the next person.
+
+---
+
+## Version History
+
+| Version | Change |
+|---------|--------|
+| v1.5 | First working proof-of-concept — single meter, CSV logging |
+| v1.56 | Added SQL storage + ODS export, improved error handling |
+| v1.61 | Async rewrite, modular structure, multi-meter support |
+| v1.62 | Stability fixes, 10-minute data intervals |
+| v1.6 (module) | Refactored into `main.py` / `modbus_client.py` / `data_storage.py` |
+| Docker | Open-source simulation stack (this repo) |
+
+---
+
+## Evolution of This Work
+
+This system became the foundation for two subsequent projects:
+
+**factory-energy-monitor** → [`edge-telemetry-platform`](https://github.com/SaladinIART/edge-telemetry-platform) → [`IIoT-Telemetry-Stack`](https://github.com/SaladinIART/IIoT-Telemetry-Stack)
+
+Each step generalised the approach: from a single-purpose energy monitor, to a reusable edge data collection framework, to a full multi-protocol IIoT telemetry stack.

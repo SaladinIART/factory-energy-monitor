@@ -3,6 +3,7 @@ import asyncio
 import csv
 import json
 import logging
+import os
 import minimalmodbus
 import pymssql
 from pathlib import Path
@@ -19,13 +20,13 @@ config = {
         "baudrate": 19200
     },
     "database": {
-        "server": "192.168.0.226",
-        "database": "Power_Usage_Alumac",
-        "user": "sa",
-        "password": "password"
+        "server": os.getenv("DB_SERVER", "YOUR_DB_SERVER_IP"),
+        "database": os.getenv("DB_NAME", "YOUR_DB_NAME"),
+        "user": os.getenv("DB_USER", "YOUR_DB_USER"),
+        "password": os.getenv("DB_PASSWORD", "YOUR_DB_PASSWORD")
     },
     "csv": {
-        "log_folder": str(Path.home() / "Desktop" / "PUA_P7Oven" / "PUA" / "rx380_daily_logs")
+        "log_folder": os.getenv("CSV_LOG_FOLDER", "./logs")
     },
     "logging": {
         "log_file": "rx380_logger.log",
