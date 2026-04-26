@@ -51,6 +51,14 @@ All site-specific configuration (IP addresses, credentials, database names, file
 
 Because the production stack depends on licensed software and site-specific hardware, this repository ships a **fully open-source Docker equivalent** that anyone can run locally. It simulates 4 production zones with realistic Malaysian factory load profiles.
 
+### Repository Layout
+
+- `services/`: the open-source Docker demo stack you can run locally today
+- `docker-compose.yml`: brings up the full simulated plant stack
+- `Rx380_watchdog_1.5.py`, `Rx380_watchdog_v1.56.py`, `Rx380_watchdog_v1.61.py`, `Rx_380_watchdog_v1.62.py`, `Rx380_Watchdog_v1.6.py/`: legacy production-script snapshots that show how the real RX380 rollout evolved before the Dockerized demo
+
+The legacy watchdog files are kept because they are part of the real project history. One-off SQL connector experiments have been removed to keep the public repo focused.
+
 ```
 docker compose up
 ```
